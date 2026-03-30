@@ -386,7 +386,14 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04));
     }
 
-    .sections .card:first-child {
+    .tracker-card {
+      grid-column: 1 / -1;
+      padding: 34px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.1), rgba(255,255,255,0.045));
+      border: 1px solid rgba(29,185,84,0.22);
+    }
+
+    #project {
       grid-column: 1 / -1;
       padding: 34px;
       background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.055));
@@ -397,13 +404,6 @@
       grid-column: 1 / -1;
       background: linear-gradient(180deg, rgba(29,185,84,0.08), rgba(255,255,255,0.04));
       border-color: rgba(29,185,84,0.22);
-    }
-
-    .tracker-card {
-      grid-column: 1 / -1;
-      padding: 34px;
-      background: linear-gradient(180deg, rgba(29,185,84,0.1), rgba(255,255,255,0.045));
-      border: 1px solid rgba(29,185,84,0.22);
     }
 
     .tracker-top {
@@ -598,9 +598,9 @@
         grid-template-columns: 1fr;
       }
 
-      .sections .card:first-child,
-      .sections .card:last-child,
-      .tracker-card {
+      .tracker-card,
+      #project,
+      .sections .card:last-child {
         grid-column: auto;
       }
 
