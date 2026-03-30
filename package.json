@@ -1,0 +1,7 @@
+{
+  "name": "natural-project",
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^6.0.0"
+  }
+}
