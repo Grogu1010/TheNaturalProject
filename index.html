@@ -9,19 +9,13 @@
       --bg: #050505;
       --bg-2: #0b0b0b;
       --bg-3: #111111;
-      --panel: rgba(255,255,255,0.05);
-      --panel-strong: rgba(255,255,255,0.08);
       --panel-border: rgba(255,255,255,0.1);
       --panel-border-strong: rgba(255,255,255,0.16);
       --text: #f7f7f7;
-      --muted: #b9b9b9;
       --accent: #1db954;
-      --accent-soft: rgba(29,185,84,0.18);
-      --accent-line: rgba(29,185,84,0.55);
       --shadow: 0 24px 60px rgba(0,0,0,0.38);
       --shadow-strong: 0 34px 100px rgba(0,0,0,0.58);
       --radius: 28px;
-      --radius-sm: 18px;
       --max: 1180px;
     }
 
@@ -99,7 +93,28 @@
       margin-bottom: 34px;
     }
 
-    .motto-banner {
+    .top-tracker {
+      width: min(760px, 100%);
+      padding: 18px 22px 16px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .top-tracker::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 40%);
+    }
+
+    .top-tracker-title {
       position: relative;
       display: inline-flex;
       align-items: center;
@@ -111,10 +126,11 @@
       padding: 0 22px;
       color: rgba(255,255,255,0.82);
       text-shadow: 0 0 22px rgba(29,185,84,0.18);
+      margin-bottom: 14px;
     }
 
-    .motto-banner::before,
-    .motto-banner::after {
+    .top-tracker-title::before,
+    .top-tracker-title::after {
       content: "";
       position: absolute;
       top: 50%;
@@ -124,16 +140,75 @@
       opacity: 0.9;
     }
 
-    .motto-banner::before {
+    .top-tracker-title::before {
       right: 100%;
       margin-right: 16px;
       transform: translateY(-50%) rotate(180deg);
     }
 
-    .motto-banner::after {
+    .top-tracker-title::after {
       left: 100%;
       margin-left: 16px;
       transform: translateY(-50%);
+    }
+
+    .top-tracker-stats {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-tracker-number {
+      font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      color: #ffffff;
+    }
+
+    .top-tracker-percent {
+      font-size: 0.95rem;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .top-progress-shell {
+      width: 100%;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.28);
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #168f41 0%, #1db954 45%, #44e07d 100%);
+      box-shadow: 0 0 24px rgba(29,185,84,0.35);
+      transition: width 0.8s ease;
+    }
+
+    .top-tracker-note {
+      font-size: 0.75rem;
+      line-height: 1.4;
+      color: rgba(255,255,255,0.58);
+      letter-spacing: 0.04em;
+      position: relative;
+      z-index: 1;
     }
 
     .hero {
@@ -266,30 +341,6 @@
       max-width: 62ch;
     }
 
-    .hero-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      padding: 10px 15px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #ededed;
-      font-size: 0.88rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      backdrop-filter: blur(10px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-
     .buttons {
       display: flex;
       flex-wrap: wrap;
@@ -386,13 +437,6 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04));
     }
 
-    .tracker-card {
-      grid-column: 1 / -1;
-      padding: 34px;
-      background: linear-gradient(180deg, rgba(29,185,84,0.1), rgba(255,255,255,0.045));
-      border: 1px solid rgba(29,185,84,0.22);
-    }
-
     #project {
       grid-column: 1 / -1;
       padding: 34px;
@@ -404,100 +448,6 @@
       grid-column: 1 / -1;
       background: linear-gradient(180deg, rgba(29,185,84,0.08), rgba(255,255,255,0.04));
       border-color: rgba(29,185,84,0.22);
-    }
-
-    .tracker-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 20px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-
-    .tracker-copy p:last-child {
-      margin-bottom: 0;
-    }
-
-    .tracker-percent {
-      text-align: right;
-      min-width: 120px;
-    }
-
-    .tracker-percent-number {
-      display: block;
-      font-size: clamp(2.2rem, 5vw, 3.8rem);
-      line-height: 0.95;
-      letter-spacing: -0.06em;
-      font-weight: 900;
-      color: #ffffff;
-    }
-
-    .tracker-percent-label {
-      display: block;
-      margin-top: 8px;
-      font-size: 0.78rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.64);
-    }
-
-    .progress-shell {
-      width: 100%;
-      height: 22px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.08);
-      overflow: hidden;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.28);
-      margin-bottom: 22px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #168f41 0%, #1db954 45%, #44e07d 100%);
-      box-shadow: 0 0 24px rgba(29,185,84,0.35);
-      transition: width 0.8s ease;
-    }
-
-    .tracker-stats {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .tracker-stat {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 18px;
-    }
-
-    .tracker-stat-label {
-      display: block;
-      font-size: 0.76rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 8px;
-    }
-
-    .tracker-stat-value {
-      display: block;
-      font-size: clamp(1.2rem, 2.8vw, 1.8rem);
-      line-height: 1.1;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: #ffffff;
-      word-break: break-word;
-    }
-
-    .tracker-note {
-      margin-top: 16px;
-      color: rgba(255,255,255,0.68);
-      font-size: 0.95rem;
     }
 
     h2 {
@@ -598,14 +548,9 @@
         grid-template-columns: 1fr;
       }
 
-      .tracker-card,
       #project,
       .sections .card:last-child {
         grid-column: auto;
-      }
-
-      .tracker-stats {
-        grid-template-columns: 1fr;
       }
     }
 
@@ -619,7 +564,12 @@
         margin-bottom: 26px;
       }
 
-      .motto-banner {
+      .top-tracker {
+        padding: 16px 14px 14px;
+        border-radius: 20px;
+      }
+
+      .top-tracker-title {
         font-size: 0.72rem;
         letter-spacing: 0.24em;
         padding: 0 12px;
@@ -648,8 +598,7 @@
         justify-content: center;
       }
 
-      .card,
-      .tracker-card {
+      .card {
         padding: 24px;
       }
 
@@ -657,22 +606,35 @@
         left: 24px;
         right: 24px;
       }
-
-      .tracker-top {
-        flex-direction: column;
-      }
-
-      .tracker-percent {
-        text-align: left;
-      }
     }
   </style>
 </head>
 <body>
   <div class="interactive-glow" aria-hidden="true"></div>
+
   <main class="container">
     <div class="topbar">
-      <div class="motto-banner">Never Stop Streaming</div>
+      <div class="top-tracker">
+        <div class="top-tracker-title">Never Stop Streaming</div>
+
+        <div class="top-tracker-stats">
+          <span class="top-tracker-number" id="currentStreamsTop">Loading...</span>
+          <span class="top-tracker-percent" id="progressPercentTop">0%</span>
+        </div>
+
+        <div
+          class="top-progress-shell"
+          role="progressbar"
+          aria-label="Progress toward 3 billion streams"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div class="top-progress-fill" id="progressFillTop"></div>
+        </div>
+
+        <div class="top-tracker-note">The number refreshes daily at 12AM NZST</div>
+      </div>
     </div>
 
     <section class="hero">
@@ -683,16 +645,11 @@
           alt="Natural single cover art by Imagine Dragons"
         />
       </div>
+
       <div class="hero-copy">
         <div class="eyebrow">Imagine Dragons fan initiative</div>
         <h1>The Natural Project</h1>
         <p class="subtitle">A fan mission to push “Natural” to 3 Billion streams on Spotify and make Imagine Dragons the #1 band with the most 3B+ viewed songs on the platform.</p>
-
-        <div class="hero-meta">
-          <div class="pill">Never Stop Streaming</div>
-          <div class="pill">3 Billion Goal</div>
-          <div class="pill">For Firebreathers</div>
-        </div>
 
         <div class="buttons">
           <a class="button button-primary" href="https://open.spotify.com/track/2FY7b99s15jUprqC0M5NCT" target="_blank" rel="noreferrer">Stream on Spotify</a>
@@ -702,51 +659,6 @@
     </section>
 
     <section class="sections">
-      <article class="card tracker-card" id="tracker">
-        <div class="tracker-top">
-          <div class="tracker-copy">
-            <h2>Live Goal Tracker</h2>
-            <p>This tracker uses your stored Netlify value, so visitors do not trigger extra upstream requests.</p>
-            <p>The number changes only when your scheduled midnight NZST refresh updates the cached total.</p>
-          </div>
-
-          <div class="tracker-percent">
-            <span class="tracker-percent-number" id="progressPercent">0%</span>
-            <span class="tracker-percent-label">of goal reached</span>
-          </div>
-        </div>
-
-        <div
-          class="progress-shell"
-          role="progressbar"
-          aria-label="Progress toward 3 billion streams"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow="0"
-        >
-          <div class="progress-fill" id="progressFill"></div>
-        </div>
-
-        <div class="tracker-stats">
-          <div class="tracker-stat">
-            <span class="tracker-stat-label">Current streams</span>
-            <span class="tracker-stat-value" id="currentStreams">Loading...</span>
-          </div>
-
-          <div class="tracker-stat">
-            <span class="tracker-stat-label">Goal</span>
-            <span class="tracker-stat-value" id="goalStreams">3,000,000,000</span>
-          </div>
-
-          <div class="tracker-stat">
-            <span class="tracker-stat-label">Streams remaining</span>
-            <span class="tracker-stat-value" id="streamsRemaining">Loading...</span>
-          </div>
-        </div>
-
-        <p class="tracker-note" id="trackerNote">Loading stream data...</p>
-      </article>
-
       <article class="card" id="project">
         <h2>What is The Natural Project (TNP)?</h2>
         <p>Imagine Dragons already have 3 Billion streams on Believer, and are insanely close to reaching that milestone on Spotify with both Demons and Thunder that they are all but guaranteed to reach it within a few months. This would place them as equal for the band with the most songs to reach 3 Billion streams ever. But why do we want to be equal when we could be more? The Natural Project is our opportunity to push Imagine Dragons to that place.</p>
@@ -794,7 +706,7 @@
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const glow = document.querySelector('.interactive-glow');
-    const glowZones = document.querySelectorAll('.hero, .card');
+    const glowZones = document.querySelectorAll('.hero, .card, .top-tracker');
 
     if (!reducedMotion.matches && glow && glowZones.length) {
       let currentX = window.innerWidth * 0.82;
@@ -841,7 +753,7 @@
       });
 
       document.addEventListener('mousemove', (event) => {
-        const zone = event.target.closest('.hero, .card');
+        const zone = event.target.closest('.hero, .card, .top-tracker');
         if (!zone) {
           setTarget(event.clientX, event.clientY, false);
         }
@@ -867,22 +779,18 @@
       return new Intl.NumberFormat('en-US').format(value);
     }
 
-    function updateTracker(current, goal, noteText) {
+    function updateTracker(current, goal) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
       const percentRounded = Math.round(percentRaw);
       const percentClamped = Math.min(percentRaw, 100);
-      const remaining = Math.max(safeGoal - safeCurrent, 0);
 
-      document.getElementById('currentStreams').textContent = formatNumber(safeCurrent);
-      document.getElementById('goalStreams').textContent = formatNumber(safeGoal);
-      document.getElementById('streamsRemaining').textContent = formatNumber(remaining);
-      document.getElementById('progressPercent').textContent = `${percentRounded}%`;
-      document.getElementById('progressFill').style.width = `${percentClamped}%`;
-      document.querySelector('.progress-shell').setAttribute('aria-valuenow', String(percentRounded));
-      document.getElementById('trackerNote').textContent = noteText || 'Loaded cached stream data.';
+      document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
+      document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
+      document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
+      document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
 
     async function loadStreams() {
@@ -901,16 +809,16 @@
 
         updateTracker(
           data.currentStreams,
-          data.goalStreams || GOAL_STREAMS,
-          data.note || (data.updatedAt ? `Last updated: ${new Date(data.updatedAt).toLocaleString()}` : 'Loaded cached stream data.')
+          data.goalStreams || GOAL_STREAMS
         );
       } catch (error) {
         console.error('Failed to load stream data:', error);
-        document.getElementById('trackerNote').textContent = 'Could not load cached stream data right now.';
+        document.getElementById('currentStreamsTop').textContent = 'Unavailable';
+        document.getElementById('progressPercentTop').textContent = '--';
       }
     }
 
-    updateTracker(0, GOAL_STREAMS, 'Loading stream data...');
+    updateTracker(0, GOAL_STREAMS);
     loadStreams();
   </script>
 </body>
