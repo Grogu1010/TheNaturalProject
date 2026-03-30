@@ -435,6 +435,104 @@
       line-height: 1.8;
     }
 
+    .tracker-card {
+      grid-column: 1 / -1;
+      padding: 34px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.11), rgba(255,255,255,0.04));
+      border: 1px solid rgba(29,185,84,0.24);
+    }
+
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .tracker-title-wrap p {
+      margin: 0;
+      color: rgba(255,255,255,0.72);
+    }
+
+    .tracker-percentage {
+      min-width: 100px;
+      text-align: right;
+    }
+
+    .tracker-percentage .big {
+      display: block;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+      color: #ffffff;
+    }
+
+    .tracker-percentage .small {
+      color: rgba(255,255,255,0.68);
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .progress-shell {
+      width: 100%;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.28);
+      margin-bottom: 22px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #168f41 0%, #1db954 45%, #44e07d 100%);
+      box-shadow: 0 0 24px rgba(29,185,84,0.35);
+      transition: width 0.8s ease;
+    }
+
+    .tracker-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .stat-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.62);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      display: block;
+      font-size: clamp(1.2rem, 3vw, 1.8rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .tracker-note {
+      margin-top: 16px;
+      color: rgba(255,255,255,0.68);
+      font-size: 0.95rem;
+    }
+
     .footer {
       text-align: center;
       color: rgba(255,255,255,0.58);
@@ -494,8 +592,13 @@
       }
 
       .sections .card:first-child,
-      .sections .card:last-child {
+      .sections .card:last-child,
+      .tracker-card {
         grid-column: auto;
+      }
+
+      .tracker-stats {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -538,7 +641,8 @@
         justify-content: center;
       }
 
-      .card {
+      .card,
+      .tracker-card {
         padding: 24px;
       }
 
@@ -546,11 +650,20 @@
         left: 24px;
         right: 24px;
       }
+
+      .tracker-header {
+        flex-direction: column;
+      }
+
+      .tracker-percentage {
+        text-align: left;
+      }
     }
   </style>
 </head>
 <body>
   <div class="interactive-glow" aria-hidden="true"></div>
+
   <main class="container">
     <div class="topbar">
       <div class="motto-banner">Never Stop Streaming</div>
@@ -564,10 +677,13 @@
           alt="Natural single cover art by Imagine Dragons"
         />
       </div>
+
       <div class="hero-copy">
         <div class="eyebrow">Imagine Dragons fan initiative</div>
         <h1>The Natural Project</h1>
-        <p class="subtitle">A fan mission to push “Natural” to 3 Billion streams on Spotify and make Imagine Dragons the #1 band with the most 3B+ viewed songs on the platform.</p>
+        <p class="subtitle">
+          A fan mission to push “Natural” to 3 Billion streams on Spotify and make Imagine Dragons the #1 band with the most 3B+ streamed songs on the platform.
+        </p>
 
         <div class="hero-meta">
           <div class="pill">Never Stop Streaming</div>
@@ -577,56 +693,176 @@
 
         <div class="buttons">
           <a class="button button-primary" href="https://open.spotify.com/track/2FY7b99s15jUprqC0M5NCT" target="_blank" rel="noreferrer">Stream on Spotify</a>
-          <a class="button button-secondary" href="#project">Read the project</a>
+          <a class="button button-secondary" href="#tracker">View tracker</a>
         </div>
       </div>
     </section>
 
     <section class="sections">
+      <article class="card tracker-card" id="tracker">
+        <div class="tracker-header">
+          <div class="tracker-title-wrap">
+            <h2>Natural Stream Tracker</h2>
+            <p>Live page refresh from MyStreamCount.</p>
+          </div>
+
+          <div class="tracker-percentage">
+            <span class="big" id="progressPercent">0%</span>
+            <span class="small">of goal reached</span>
+          </div>
+        </div>
+
+        <div
+          class="progress-shell"
+          role="progressbar"
+          aria-label="Progress toward 3 billion streams"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="tracker-stats">
+          <div class="stat-box">
+            <span class="stat-label">Current streams</span>
+            <span class="stat-value" id="currentStreams">Loading...</span>
+          </div>
+
+          <div class="stat-box">
+            <span class="stat-label">Goal</span>
+            <span class="stat-value" id="goalStreams">3,000,000,000</span>
+          </div>
+
+          <div class="stat-box">
+            <span class="stat-label">Streams remaining</span>
+            <span class="stat-value" id="streamsRemaining">Loading...</span>
+          </div>
+        </div>
+
+        <p class="tracker-note" id="trackerNote">Loading stream data...</p>
+      </article>
+
       <article class="card" id="project">
         <h2>What is The Natural Project (TNP)?</h2>
-        <p>Imagine Dragons already have 3 Billion streams on Believer, and are insanely close to reaching that milestone on Spotify with both Demons and Thunder that they are all but guaranteed to reach it within a few months. This would place them as equal for the band with the most songs to reach 3 Billion streams ever. But why do we want to be equal when we could be more? The Natural Project is our opportunity to push Imagine Dragons to that place.</p>
+        <p>
+          Imagine Dragons already have 3 Billion streams on Believer, and are insanely close to reaching that milestone on Spotify with both Demons and Thunder that they are all but guaranteed to reach it within a few months. This would place them as equal for the band with the most songs to reach 3 Billion streams ever. But why do we want to be equal when we could be more? The Natural Project is our opportunity to push Imagine Dragons to that place.
+        </p>
       </article>
 
       <article class="card">
         <h2>Why Natural?</h2>
-        <p>Natural has been the chosen song for 3 reasons. The reasons are listed below</p>
+        <p>Natural has been the chosen song for 3 reasons. The reasons are listed below.</p>
         <ul>
-          <li>Natural is already very popular. It is their eighth most streamed song and already halfway to the 3 Billion streams needed. This makes it more possible compared to other songs by this artist (even though I’d love to get Release and some of their more underrated stuff up there :( ).</li>
-          <li>Natural is more unique compared to other hits. For this project to work, we all have to stream the song. Having a more unique song with many more layers to their other work gives it more replay value, making the project feel less like a grind.</li>
-          <li>Imagine Dragons is constantly a bullied community for ‘simple songs’. I’m sure none of us want more of that. Natural is one of the more unique, less simple songs, and I haven’t really heard it get made fun of by non-Imagine Dragons fans to the same level as both songs above it (Thunder, Believer), and below it (On Top Of The World). This likely will cause minimal fun made compared to other, more popular songs like Enemy or Bones.</li>
+          <li>Natural is already very popular. It is their eighth most streamed song and already halfway to the 3 Billion streams needed. This makes it more possible compared to other songs by this artist.</li>
+          <li>Natural is more unique compared to other hits. For this project to work, we all have to stream the song. Having a more unique song gives it more replay value, making the project feel less like a grind.</li>
+          <li>Natural is one of the more unique, less simple songs, which makes it a stronger community choice for a long-term streaming push.</li>
         </ul>
       </article>
 
       <article class="card">
         <h2>How The Natural Project will work</h2>
-        <p>For The Natural Project, us fans will unite in the aims to get Natural to 3 Billion streams. And this is how we are going to do it!</p>
+        <p>For The Natural Project, fans will unite in the aim of getting Natural to 3 Billion streams. And this is how we are going to do it.</p>
 
         <h3>Daily Streams</h3>
-        <p>We are aiming for a minimum of 5 streams more than you usually would stream Natural every day for every participating Firebreather, along with double-stream Fridays (10 streams). This would put us in a very strong place, giving it an additional 40+ streams every week from just the participating members alone, not to mention the extra people who could hear it due to the algorithm promoting it again after the rapid stream growth. Please remember looping the song does not give it the streams, you must click on it individually and listen to it for at least 30 seconds.</p>
+        <p>We are aiming for a minimum of 5 streams more than you usually would stream Natural every day for every participating Firebreather, along with double-stream Fridays (10 streams).</p>
 
         <h3>The Playlist Rule</h3>
-        <p>Aim to place Natural in every single playlist you own once per 5 songs there are. Therefore, when you’re shuffling their discography, other artists' music, or whatever else, you’re directly contributing to our rapid streams growth that we are aiming for.</p>
+        <p>Aim to place Natural in every playlist you own once per 5 songs, so every shuffle contributes to the project.</p>
 
         <h3>Social Posts</h3>
-        <p>When posting to your Instagram story or TikTok or whatever other social media you use, make sure to use this banger as the background music to as many of them as possible.</p>
+        <p>When posting to Instagram, TikTok, or other socials, use Natural as the background music whenever possible.</p>
 
         <h3>Spreading The Word</h3>
-        <p>Spread the word across your socials, recommend your friends the amazing song and make sure that everyone knows that the 3B Natural is coming!</p>
+        <p>Spread the word across your socials, recommend the song to friends, and make sure everyone knows that 3B for Natural is coming.</p>
       </article>
 
       <article class="card">
         <h2>The Goal</h2>
-        <p class="goal">The goal of this project, if it isn’t already clear enough, is to make Imagine Dragons the #1 band with the most 3B+ viewed songs on Spotify. If as many firebreathers as possible unite to this cause, we should hopefully be able to drag it to the top. Every stream counts, so go out there and never stop streaming!</p>
+        <p class="goal">
+          The goal of this project is to make Imagine Dragons the #1 band with the most 3B+ streamed songs on Spotify. Every stream counts, so go out there and never stop streaming.
+        </p>
       </article>
     </section>
 
     <div class="footer">The Natural Project • Never Stop Streaming</div>
   </main>
+
   <script>
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const glow = document.querySelector('.interactive-glow');
-    const glowZones = document.querySelectorAll('.hero, .card');
+    const GOAL_STREAMS = 3000000000;
+    const REFRESH_MS = 60 * 1000;
+    const API_URL = "/.netlify/functions/natural-streams";
+
+    const progressFill = document.getElementById("progressFill");
+    const progressPercent = document.getElementById("progressPercent");
+    const currentStreamsEl = document.getElementById("currentStreams");
+    const goalStreamsEl = document.getElementById("goalStreams");
+    const streamsRemainingEl = document.getElementById("streamsRemaining");
+    const trackerNote = document.getElementById("trackerNote");
+    const progressShell = document.querySelector(".progress-shell");
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-US").format(value);
+    }
+
+    function updateTracker(current, goal, noteText) {
+      const safeCurrent = Math.max(0, Number(current) || 0);
+      const safeGoal = Math.max(1, Number(goal) || 1);
+
+      const percentRaw = (safeCurrent / safeGoal) * 100;
+      const percentRounded = Math.round(percentRaw);
+      const percentClamped = Math.min(percentRaw, 100);
+      const remaining = Math.max(safeGoal - safeCurrent, 0);
+
+      currentStreamsEl.textContent = formatNumber(safeCurrent);
+      goalStreamsEl.textContent = formatNumber(safeGoal);
+      streamsRemainingEl.textContent = formatNumber(remaining);
+      progressPercent.textContent = `${percentRounded}%`;
+      progressFill.style.width = `${percentClamped}%`;
+      progressShell.setAttribute("aria-valuenow", String(percentRounded));
+      trackerNote.textContent = noteText || "Updated just now.";
+    }
+
+    async function loadStreams() {
+      try {
+        trackerNote.textContent = "Refreshing stream data...";
+
+        const response = await fetch(API_URL, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          },
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data || typeof data.currentStreams !== "number") {
+          throw new Error("Invalid response shape");
+        }
+
+        updateTracker(
+          data.currentStreams,
+          data.goalStreams || GOAL_STREAMS,
+          data.note || `Last checked: ${new Date().toLocaleString()}`
+        );
+      } catch (error) {
+        console.error("Failed to load stream data:", error);
+        trackerNote.textContent = "Could not refresh stream data right now.";
+      }
+    }
+
+    updateTracker(0, GOAL_STREAMS, "Loading stream data...");
+    loadStreams();
+    setInterval(loadStreams, REFRESH_MS);
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const glow = document.querySelector(".interactive-glow");
+    const glowZones = document.querySelectorAll(".hero, .card");
 
     if (!reducedMotion.matches && glow && glowZones.length) {
       let currentX = window.innerWidth * 0.82;
@@ -640,10 +876,14 @@
         currentX += (targetX - currentX) * 0.075;
         currentY += (targetY - currentY) * 0.075;
 
-        glow.style.transform = `translate3d(${currentX - glow.offsetWidth / 2}px, ${currentY - glow.offsetHeight / 2}px, 0)`;
-        glow.style.opacity = isActive ? '0.95' : '0.55';
+        glow.style.transform =
+          `translate3d(${currentX - glow.offsetWidth / 2}px, ${currentY - glow.offsetHeight / 2}px, 0)`;
+        glow.style.opacity = isActive ? "0.95" : "0.55";
 
-        const moving = Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1;
+        const moving =
+          Math.abs(targetX - currentX) > 0.1 ||
+          Math.abs(targetY - currentY) > 0.1;
+
         if (moving || isActive) {
           rafId = requestAnimationFrame(renderGlow);
         } else {
@@ -663,28 +903,28 @@
       };
 
       glowZones.forEach((zone) => {
-        zone.addEventListener('mousemove', (event) => {
+        zone.addEventListener("mousemove", (event) => {
           setTarget(event.clientX, event.clientY, true);
         });
 
-        zone.addEventListener('mouseenter', (event) => {
+        zone.addEventListener("mouseenter", (event) => {
           setTarget(event.clientX, event.clientY, true);
         });
       });
 
-      document.addEventListener('mousemove', (event) => {
-        const zone = event.target.closest('.hero, .card');
+      document.addEventListener("mousemove", (event) => {
+        const zone = event.target.closest(".hero, .card");
         if (!zone) {
           setTarget(event.clientX, event.clientY, false);
         }
       });
 
-      document.addEventListener('mouseleave', () => {
+      document.addEventListener("mouseleave", () => {
         isActive = false;
         start();
       });
 
-      window.addEventListener('resize', () => {
+      window.addEventListener("resize", () => {
         if (!isActive) {
           targetX = window.innerWidth * 0.82;
           targetY = 120;
