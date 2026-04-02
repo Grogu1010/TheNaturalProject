@@ -65,7 +65,7 @@ export default async () => {
       currentStreams: streams,
       goalStreams: GOAL,
       updatedAt: now,
-      streamHistory: nextHistory.slice(-3),
+      streamHistory: nextHistory.slice(-21),
       note: "Updated daily at midnight NZST"
     }));
 
