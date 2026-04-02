@@ -211,6 +211,61 @@
       z-index: 1;
     }
 
+    .top-tracker-toggle {
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.9);
+      border-radius: 999px;
+      padding: 8px 12px;
+      margin: 2px auto 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-tracker-details {
+      margin: 0 auto 10px;
+      max-width: 640px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(4, 8, 14, 0.55);
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-tracker-details[hidden] {
+      display: none;
+    }
+
+    .period-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .period-button {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.8);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .period-button.active {
+      background: rgba(29,185,84,0.2);
+      border-color: rgba(68,224,125,0.56);
+      color: #d8ffe8;
+    }
+
     .trend-positive {
       color: #44e07d;
       font-weight: 800;
@@ -631,7 +686,17 @@
           <span class="top-tracker-number" id="currentStreamsTop">Loading...</span>
           <span class="top-tracker-percent" id="progressPercentTop">0%</span>
         </div>
-        <div class="top-tracker-note" id="dailyChangeTop">+0 in the last day</div>
+        <button class="top-tracker-toggle" id="detailsToggle" type="button" aria-expanded="false" aria-controls="trackerDetails">Show stream comparison details</button>
+
+        <div class="top-tracker-details" id="trackerDetails" hidden>
+          <div class="period-buttons">
+            <button type="button" class="period-button active" data-period="day">Day</button>
+            <button type="button" class="period-button" data-period="week">Week</button>
+            <button type="button" class="period-button" data-period="month">Month</button>
+            <button type="button" class="period-button" data-period="year">Year</button>
+          </div>
+          <div class="top-tracker-note" id="dailyChangeTop">+0 in the last day</div>
+        </div>
 
         <div
           class="top-progress-shell"
@@ -714,6 +779,13 @@
   <script>
     const GOAL_STREAMS = 3000000000;
     const API_URL = "/.netlify/functions/natural-streams";
+    const PERIODS = {
+      day: { label: 'day', days: 1 },
+      week: { label: 'week', days: 7 },
+      month: { label: 'month', days: 30 },
+      year: { label: 'year', days: 365 }
+    };
+    let activePeriod = 'day';
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const glow = document.querySelector('.interactive-glow');
@@ -790,55 +862,77 @@
       return new Intl.NumberFormat('en-US').format(value);
     }
 
-    function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0) {
+    function updateTracker(current, goal) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
-      const safeIncrease = Number.isFinite(Number(lastDayIncrease))
-        ? Math.max(0, Number(lastDayIncrease))
-        : 0;
-      const safeDayOverDayChange = Number.isFinite(Number(dayOverDayChange))
-        ? Number(dayOverDayChange)
-        : 0;
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
       const percentRounded = Math.floor(percentRaw);
       const percentClamped = Math.min(percentRaw, 100);
-      const trendDirection = safeDayOverDayChange >= 0 ? 'more' : 'less';
-      const trendClass = safeDayOverDayChange >= 0 ? 'trend-positive' : 'trend-negative';
-      const trendAmount = formatNumber(Math.abs(safeDayOverDayChange));
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
-      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
 
-    function getLastDayIncrease(data) {
+    function getCleanHistory(data) {
       const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
-      const last = Number(history[history.length - 1]?.streams);
-      const previous = Number(history[history.length - 2]?.streams);
+      const cleaned = history.filter((entry) => Number.isFinite(Number(entry?.streams)));
+      const latest = Number(data?.currentStreams);
+      const lastHistory = Number(cleaned[cleaned.length - 1]?.streams);
 
-      if (Number.isFinite(last) && Number.isFinite(previous)) {
-        return Math.max(0, last - previous);
+      if (Number.isFinite(latest) && latest !== lastHistory) {
+        cleaned.push({ streams: latest });
       }
 
-      return 0;
+      return cleaned;
     }
 
-    function getDayOverDayChange(data) {
-      const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
-      const last = Number(history[history.length - 1]?.streams);
-      const previous = Number(history[history.length - 2]?.streams);
-      const beforePrevious = Number(history[history.length - 3]?.streams);
+    function getPeriodStats(data, periodKey) {
+      const period = PERIODS[periodKey] || PERIODS.day;
+      const history = getCleanHistory(data);
+      const count = history.length;
+      const latest = Number(history[count - 1]?.streams);
+      const periodStart = Number(history[count - 1 - period.days]?.streams);
+      const previousPeriodEnd = Number(history[count - 1 - period.days]?.streams);
+      const previousPeriodStart = Number(history[count - 1 - (period.days * 2)]?.streams);
 
-      if (Number.isFinite(last) && Number.isFinite(previous) && Number.isFinite(beforePrevious)) {
-        const latestIncrease = Math.max(0, last - previous);
-        const priorIncrease = Math.max(0, previous - beforePrevious);
-        return latestIncrease - priorIncrease;
+      const hasCurrentPeriod = Number.isFinite(latest) && Number.isFinite(periodStart);
+      const currentIncrease = hasCurrentPeriod ? Math.max(0, latest - periodStart) : null;
+
+      const hasPreviousPeriod = Number.isFinite(previousPeriodEnd) && Number.isFinite(previousPeriodStart);
+      const previousIncrease = hasPreviousPeriod ? Math.max(0, previousPeriodEnd - previousPeriodStart) : null;
+
+      return {
+        label: period.label,
+        currentIncrease,
+        trendDifference:
+          currentIncrease !== null && previousIncrease !== null
+            ? currentIncrease - previousIncrease
+            : null
+      };
+    }
+
+    function renderPeriodStats(data, periodKey) {
+      const stats = getPeriodStats(data, periodKey);
+      const details = document.getElementById('dailyChangeTop');
+
+      if (stats.currentIncrease === null) {
+        details.innerHTML = `Need more history to compare the last ${stats.label}.`;
+        return;
       }
 
-      return 0;
+      if (stats.trendDifference === null) {
+        details.innerHTML = `<span class="trend-positive">+${formatNumber(stats.currentIncrease)}</span> in the last ${stats.label}.`;
+        return;
+      }
+
+      const trendDirection = stats.trendDifference >= 0 ? 'more' : 'less';
+      const trendClass = stats.trendDifference >= 0 ? 'trend-positive' : 'trend-negative';
+      const trendAmount = formatNumber(Math.abs(stats.trendDifference));
+
+      details.innerHTML = `<span class="trend-positive">+${formatNumber(stats.currentIncrease)}</span> in the last ${stats.label} • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous ${stats.label}`;
     }
 
     async function loadStreams() {
@@ -854,22 +948,43 @@
         }
 
         const data = await response.json();
+        latestData = data;
 
-        updateTracker(
-          data.currentStreams,
-          data.goalStreams || GOAL_STREAMS,
-          getLastDayIncrease(data),
-          getDayOverDayChange(data)
-        );
+        updateTracker(data.currentStreams, data.goalStreams || GOAL_STREAMS);
+        renderPeriodStats(data, activePeriod);
       } catch (error) {
         console.error('Failed to load stream data:', error);
         document.getElementById('currentStreamsTop').textContent = 'Unavailable';
         document.getElementById('progressPercentTop').textContent = '--';
-        document.getElementById('dailyChangeTop').innerHTML = '<span class="trend-positive">+0</span> in the last day • <span class="trend-positive">0 more</span> than previous day';
+        document.getElementById('dailyChangeTop').textContent = 'Could not load stream comparison data.';
       }
     }
 
-    updateTracker(0, GOAL_STREAMS, 0);
+    const detailsToggle = document.getElementById('detailsToggle');
+    const trackerDetails = document.getElementById('trackerDetails');
+    const periodButtons = document.querySelectorAll('.period-button');
+    let latestData = null;
+
+    detailsToggle.addEventListener('click', () => {
+      const nextExpanded = detailsToggle.getAttribute('aria-expanded') !== 'true';
+      detailsToggle.setAttribute('aria-expanded', String(nextExpanded));
+      detailsToggle.textContent = nextExpanded
+        ? 'Hide stream comparison details'
+        : 'Show stream comparison details';
+      trackerDetails.hidden = !nextExpanded;
+    });
+
+    periodButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        activePeriod = button.dataset.period || 'day';
+        periodButtons.forEach((item) => item.classList.toggle('active', item === button));
+        if (latestData) {
+          renderPeriodStats(latestData, activePeriod);
+        }
+      });
+    });
+
+    updateTracker(0, GOAL_STREAMS);
     loadStreams();
   </script>
 </body>
