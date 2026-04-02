@@ -784,7 +784,7 @@
       const safeGoal = Math.max(1, Number(goal) || 1);
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
-      const percentRounded = Math.round(percentRaw);
+      const percentRounded = Math.floor(percentRaw);
       const percentClamped = Math.min(percentRaw, 100);
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
