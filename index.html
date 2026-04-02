@@ -211,6 +211,135 @@
       z-index: 1;
     }
 
+    .tracker-compare-trigger {
+      border: 1px solid rgba(68,224,125,0.45);
+      background: rgba(68,224,125,0.08);
+      color: rgba(255,255,255,0.94);
+      font: inherit;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      letter-spacing: 0.04em;
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: 0 0 0 0 rgba(68,224,125,0.4);
+    }
+
+    .tracker-compare-trigger:hover,
+    .tracker-compare-trigger:focus-visible {
+      transform: translateY(-1px);
+      background: rgba(68,224,125,0.16);
+      box-shadow: 0 0 0 4px rgba(68,224,125,0.2);
+      outline: none;
+    }
+
+    .compare-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      padding: 22px;
+      backdrop-filter: blur(8px);
+    }
+
+    .compare-modal.open { display: flex; }
+
+    .compare-panel {
+      width: min(960px, 100%);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: linear-gradient(180deg, rgba(16,16,16,0.96), rgba(8,8,8,0.96));
+      box-shadow: var(--shadow-strong);
+      padding: 22px;
+    }
+
+    .compare-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .compare-header h3 {
+      margin: 0;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .compare-close {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border-radius: 12px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .compare-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .compare-range-btn {
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.84);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .compare-range-btn.active {
+      border-color: rgba(68,224,125,0.6);
+      background: rgba(68,224,125,0.16);
+      color: #fff;
+    }
+
+    .compare-summary {
+      margin-bottom: 12px;
+      font-size: 0.86rem;
+      color: rgba(255,255,255,0.86);
+    }
+
+    .compare-chart {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.02);
+      overflow: hidden;
+      padding: 10px;
+    }
+
+    .compare-svg {
+      width: 100%;
+      height: 300px;
+      display: block;
+    }
+
+    .compare-legend {
+      margin-top: 10px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: rgba(255,255,255,0.72);
+      font-size: 0.76rem;
+      letter-spacing: 0.03em;
+    }
+
     .trend-positive {
       color: #44e07d;
       font-weight: 800;
@@ -631,7 +760,7 @@
           <span class="top-tracker-number" id="currentStreamsTop">Loading...</span>
           <span class="top-tracker-percent" id="progressPercentTop">0%</span>
         </div>
-        <div class="top-tracker-note" id="dailyChangeTop">+0 in the last day</div>
+        <button class="tracker-compare-trigger" id="dailyChangeTop" type="button" aria-haspopup="dialog" aria-controls="compareModal">+0 in the last day • 0 more than previous day</button>
 
         <div
           class="top-progress-shell"
@@ -645,6 +774,25 @@
         </div>
 
         <div class="top-tracker-note">The number refreshes daily at 12AM NZST - information is according to <a href="https://www.mystreamcount.com/track/2FY7b99s15jUprqC0M5NCT">mystreamcount.com</a></div>
+      </div>
+    </div>
+
+    <div class="compare-modal" id="compareModal" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+      <div class="compare-panel">
+        <div class="compare-header">
+          <h3 id="compareTitle">Natural stream growth comparison</h3>
+          <button type="button" class="compare-close" id="compareClose">Close</button>
+        </div>
+        <div class="compare-controls" id="compareControls"></div>
+        <div class="compare-summary" id="compareSummary">Pick a range to compare stream growth.</div>
+        <div class="compare-chart">
+          <svg class="compare-svg" id="compareSvg" viewBox="0 0 900 300" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="compare-legend">
+          <span>🟩 Current period</span>
+          <span>⬜ Previous period</span>
+          <span>│ Divider between previous/current</span>
+        </div>
       </div>
     </div>
 
@@ -790,6 +938,130 @@
       return new Intl.NumberFormat('en-US').format(value);
     }
 
+    const COMPARE_RANGES = [
+      { key: 'day', label: 'Day', days: 1 },
+      { key: 'week', label: 'Week', days: 7 },
+      { key: 'fortnight', label: 'Fortnight', days: 14 },
+      { key: 'month', label: 'Month', days: 30 },
+      { key: 'quarter', label: 'Quarter', days: 91 },
+      { key: 'year', label: 'Year', days: 365 }
+    ];
+
+    const chartState = {
+      history: [],
+      selectedRange: 'day'
+    };
+
+    function normalizeHistory(data) {
+      const snapshots = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
+      const valid = snapshots
+        .filter((entry) => Number.isFinite(Number(entry?.streams)))
+        .map((entry) => ({
+          streams: Number(entry.streams),
+          capturedAt: entry?.capturedAt || new Date().toISOString()
+        }))
+        .sort((a, b) => new Date(a.capturedAt) - new Date(b.capturedAt));
+
+      const byDate = new Map();
+      valid.forEach((entry) => {
+        const day = new Date(entry.capturedAt).toISOString().slice(0, 10);
+        const existing = byDate.get(day);
+        if (!existing || new Date(entry.capturedAt) > new Date(existing.capturedAt)) {
+          byDate.set(day, entry);
+        }
+      });
+
+      return [...byDate.values()].sort((a, b) => new Date(a.capturedAt) - new Date(b.capturedAt));
+    }
+
+    function getDailyDeltas(history) {
+      const deltas = [];
+      for (let i = 1; i < history.length; i += 1) {
+        deltas.push(Math.max(0, Number(history[i].streams) - Number(history[i - 1].streams)));
+      }
+      return deltas;
+    }
+
+    function sumRange(values, startIndex, length) {
+      let total = 0;
+      for (let i = 0; i < length; i += 1) {
+        const value = Number(values[startIndex + i]);
+        if (Number.isFinite(value)) total += value;
+      }
+      return total;
+    }
+
+    function renderComparisonChart() {
+      const range = COMPARE_RANGES.find((item) => item.key === chartState.selectedRange) || COMPARE_RANGES[0];
+      const deltas = getDailyDeltas(chartState.history);
+      const pointCount = range.days * 2;
+      const padded = deltas.length >= pointCount
+        ? deltas.slice(deltas.length - pointCount)
+        : [...Array(pointCount - deltas.length).fill(0), ...deltas];
+
+      const previousTotal = sumRange(padded, 0, range.days);
+      const currentTotal = sumRange(padded, range.days, range.days);
+      const diff = currentTotal - previousTotal;
+      const diffText = diff >= 0 ? `${formatNumber(diff)} more` : `${formatNumber(Math.abs(diff))} less`;
+      document.getElementById('compareSummary').textContent =
+        `${range.label}: ${formatNumber(currentTotal)} streams in current period vs ${formatNumber(previousTotal)} previous period (${diffText}).`;
+
+      const svg = document.getElementById('compareSvg');
+      const w = 900;
+      const h = 300;
+      const p = 16;
+      const gw = w - p * 2;
+      const gh = h - p * 2;
+      const maxValue = Math.max(1, ...padded);
+      const toX = (index) => p + (index / (Math.max(1, padded.length - 1))) * gw;
+      const toY = (value) => p + gh - (value / maxValue) * gh;
+      const allPoints = padded.map((value, index) => `${toX(index)},${toY(value)}`).join(' ');
+      const startCurrent = Math.max(0, range.days - 1);
+      const currentPoints = padded
+        .slice(startCurrent)
+        .map((value, index) => `${toX(index + startCurrent)},${toY(value)}`)
+        .join(' ');
+      const dividerX = toX(startCurrent);
+
+      svg.innerHTML = `
+        <line x1="${dividerX}" y1="${p}" x2="${dividerX}" y2="${h - p}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="8 6"></line>
+        <polyline points="${allPoints}" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"></polyline>
+        <polyline points="${currentPoints}" fill="none" stroke="#44e07d" stroke-width="3"></polyline>
+      `;
+    }
+
+    function setCompareRange(nextRange) {
+      chartState.selectedRange = nextRange;
+      document.querySelectorAll('.compare-range-btn').forEach((button) => {
+        button.classList.toggle('active', button.dataset.range === nextRange);
+      });
+      renderComparisonChart();
+    }
+
+    function setupComparisonUi() {
+      const controls = document.getElementById('compareControls');
+      controls.innerHTML = '';
+      COMPARE_RANGES.forEach((range) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'compare-range-btn';
+        button.dataset.range = range.key;
+        button.textContent = range.label;
+        button.addEventListener('click', () => setCompareRange(range.key));
+        controls.appendChild(button);
+      });
+
+      const modal = document.getElementById('compareModal');
+      document.getElementById('dailyChangeTop').addEventListener('click', () => {
+        modal.classList.add('open');
+        setCompareRange(chartState.selectedRange);
+      });
+      document.getElementById('compareClose').addEventListener('click', () => modal.classList.remove('open'));
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) modal.classList.remove('open');
+      });
+    }
+
     function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
@@ -809,7 +1081,7 @@
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
-      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day`;
+      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day <strong>↗ Compare ranges</strong>`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
@@ -861,14 +1133,17 @@
           getLastDayIncrease(data),
           getDayOverDayChange(data)
         );
+        chartState.history = normalizeHistory(data);
+        renderComparisonChart();
       } catch (error) {
         console.error('Failed to load stream data:', error);
         document.getElementById('currentStreamsTop').textContent = 'Unavailable';
         document.getElementById('progressPercentTop').textContent = '--';
-        document.getElementById('dailyChangeTop').innerHTML = '<span class="trend-positive">+0</span> in the last day • <span class="trend-positive">0 more</span> than previous day';
+        document.getElementById('dailyChangeTop').innerHTML = '<span class="trend-positive">+0</span> in the last day • <span class="trend-positive">0 more</span> than previous day <strong>↗ Compare ranges</strong>';
       }
     }
 
+    setupComparisonUi();
     updateTracker(0, GOAL_STREAMS, 0);
     loadStreams();
   </script>

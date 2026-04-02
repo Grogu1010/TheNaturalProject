@@ -61,11 +61,24 @@ export default async () => {
       });
     }
 
+    const byDay = new Map();
+    nextHistory.forEach((entry) => {
+      const day = new Date(entry.capturedAt || now).toISOString().slice(0, 10);
+      const existing = byDay.get(day);
+      if (!existing || new Date(entry.capturedAt) > new Date(existing.capturedAt)) {
+        byDay.set(day, entry);
+      }
+    });
+
+    const normalizedHistory = [...byDay.values()].sort(
+      (a, b) => new Date(a.capturedAt) - new Date(b.capturedAt)
+    );
+
     await store.set("data", JSON.stringify({
       currentStreams: streams,
       goalStreams: GOAL,
       updatedAt: now,
-      streamHistory: nextHistory.slice(-21),
+      streamHistory: normalizedHistory,
       note: "Updated daily at midnight NZST"
     }));
 
