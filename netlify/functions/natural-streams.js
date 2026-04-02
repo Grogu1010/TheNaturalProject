@@ -7,6 +7,7 @@ export default async () => {
   if(!data){
     return new Response(JSON.stringify({
       currentStreams: 0,
+      streamHistory: [],
       note: "Waiting for first update"
     }), { headers:{ "content-type":"application/json" }});
   }
