@@ -211,6 +211,16 @@
       z-index: 1;
     }
 
+    .trend-positive {
+      color: #44e07d;
+      font-weight: 800;
+    }
+
+    .trend-negative {
+      color: #ff6b6b;
+      font-weight: 800;
+    }
+
     .hero {
       position: relative;
       display: grid;
@@ -780,20 +790,26 @@
       return new Intl.NumberFormat('en-US').format(value);
     }
 
-    function updateTracker(current, goal, lastDayIncrease = 0) {
+    function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
       const safeIncrease = Number.isFinite(Number(lastDayIncrease))
         ? Math.max(0, Number(lastDayIncrease))
         : 0;
+      const safeDayOverDayChange = Number.isFinite(Number(dayOverDayChange))
+        ? Number(dayOverDayChange)
+        : 0;
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
       const percentRounded = Math.floor(percentRaw);
       const percentClamped = Math.min(percentRaw, 100);
+      const trendDirection = safeDayOverDayChange >= 0 ? 'more' : 'less';
+      const trendClass = safeDayOverDayChange >= 0 ? 'trend-positive' : 'trend-negative';
+      const trendAmount = formatNumber(Math.abs(safeDayOverDayChange));
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
-      document.getElementById('dailyChangeTop').textContent = `+${formatNumber(safeIncrease)} in the last day`;
+      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
@@ -805,6 +821,21 @@
 
       if (Number.isFinite(last) && Number.isFinite(previous)) {
         return Math.max(0, last - previous);
+      }
+
+      return 0;
+    }
+
+    function getDayOverDayChange(data) {
+      const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
+      const last = Number(history[history.length - 1]?.streams);
+      const previous = Number(history[history.length - 2]?.streams);
+      const beforePrevious = Number(history[history.length - 3]?.streams);
+
+      if (Number.isFinite(last) && Number.isFinite(previous) && Number.isFinite(beforePrevious)) {
+        const latestIncrease = Math.max(0, last - previous);
+        const priorIncrease = Math.max(0, previous - beforePrevious);
+        return latestIncrease - priorIncrease;
       }
 
       return 0;
@@ -827,13 +858,14 @@
         updateTracker(
           data.currentStreams,
           data.goalStreams || GOAL_STREAMS,
-          getLastDayIncrease(data)
+          getLastDayIncrease(data),
+          getDayOverDayChange(data)
         );
       } catch (error) {
         console.error('Failed to load stream data:', error);
         document.getElementById('currentStreamsTop').textContent = 'Unavailable';
         document.getElementById('progressPercentTop').textContent = '--';
-        document.getElementById('dailyChangeTop').textContent = '+0 in the last day';
+        document.getElementById('dailyChangeTop').innerHTML = '<span class="trend-positive">+0</span> in the last day • <span class="trend-positive">0 more</span> than previous day';
       }
     }
 
