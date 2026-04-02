@@ -621,6 +621,7 @@
           <span class="top-tracker-number" id="currentStreamsTop">Loading...</span>
           <span class="top-tracker-percent" id="progressPercentTop">0%</span>
         </div>
+        <div class="top-tracker-note" id="dailyChangeTop">+0 in the last day</div>
 
         <div
           class="top-progress-shell"
@@ -779,9 +780,12 @@
       return new Intl.NumberFormat('en-US').format(value);
     }
 
-    function updateTracker(current, goal) {
+    function updateTracker(current, goal, lastDayIncrease = 0) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
+      const safeIncrease = Number.isFinite(Number(lastDayIncrease))
+        ? Math.max(0, Number(lastDayIncrease))
+        : 0;
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
       const percentRounded = Math.floor(percentRaw);
@@ -789,8 +793,21 @@
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
+      document.getElementById('dailyChangeTop').textContent = `+${formatNumber(safeIncrease)} in the last day`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
+    }
+
+    function getLastDayIncrease(data) {
+      const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
+      const last = Number(history[history.length - 1]?.streams);
+      const previous = Number(history[history.length - 2]?.streams);
+
+      if (Number.isFinite(last) && Number.isFinite(previous)) {
+        return Math.max(0, last - previous);
+      }
+
+      return 0;
     }
 
     async function loadStreams() {
@@ -809,16 +826,18 @@
 
         updateTracker(
           data.currentStreams,
-          data.goalStreams || GOAL_STREAMS
+          data.goalStreams || GOAL_STREAMS,
+          getLastDayIncrease(data)
         );
       } catch (error) {
         console.error('Failed to load stream data:', error);
         document.getElementById('currentStreamsTop').textContent = 'Unavailable';
         document.getElementById('progressPercentTop').textContent = '--';
+        document.getElementById('dailyChangeTop').textContent = '+0 in the last day';
       }
     }
 
-    updateTracker(0, GOAL_STREAMS);
+    updateTracker(0, GOAL_STREAMS, 0);
     loadStreams();
   </script>
 </body>
