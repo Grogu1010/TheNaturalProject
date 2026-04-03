@@ -211,6 +211,23 @@
       z-index: 1;
     }
 
+    .tracker-daily-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tracker-daily-change {
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.9);
+    }
+
     .tracker-compare-trigger {
       border: 1px solid rgba(68,224,125,0.45);
       background: rgba(68,224,125,0.08);
@@ -289,6 +306,14 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 16px;
+    }
+
+    .compare-controls-label {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.58);
+      margin: 10px 0 8px;
     }
 
     .compare-range-btn {
@@ -760,7 +785,10 @@
           <span class="top-tracker-number" id="currentStreamsTop">Loading...</span>
           <span class="top-tracker-percent" id="progressPercentTop">0%</span>
         </div>
-        <button class="tracker-compare-trigger" id="dailyChangeTop" type="button" aria-haspopup="dialog" aria-controls="compareModal">+0 in the last day • 0 more than previous day</button>
+        <div class="tracker-daily-row">
+          <span class="tracker-daily-change" id="dailyChangeTop">+0 in the last day • 0 more than previous day</span>
+          <button class="tracker-compare-trigger" id="compareRangesTrigger" type="button" aria-haspopup="dialog" aria-controls="compareModal">Compare ranges ↗</button>
+        </div>
 
         <div
           class="top-progress-shell"
@@ -783,15 +811,18 @@
           <h3 id="compareTitle">Natural stream growth comparison</h3>
           <button type="button" class="compare-close" id="compareClose">Close</button>
         </div>
+        <div class="compare-controls-label">Current range</div>
         <div class="compare-controls" id="compareControls"></div>
+        <div class="compare-controls-label">Compare against</div>
+        <div class="compare-controls" id="compareAgainstControls"></div>
         <div class="compare-summary" id="compareSummary">Pick a range to compare stream growth.</div>
         <div class="compare-chart">
           <svg class="compare-svg" id="compareSvg" viewBox="0 0 900 300" preserveAspectRatio="none"></svg>
         </div>
         <div class="compare-legend">
           <span>🟩 Current period</span>
-          <span>⬜ Previous period</span>
-          <span>│ Divider between previous/current</span>
+          <span>⬜ Selected comparison period</span>
+          <span>Choose both a current range and a comparison range</span>
         </div>
       </div>
     </div>
@@ -947,9 +978,53 @@
       { key: 'year', label: 'Year', days: 365 }
     ];
 
+    const COMPARE_AGAINST_OPTIONS = {
+      day: [
+        { key: 'previous_day', label: 'Previous day', days: 1 },
+        { key: 'week', label: 'Last week', days: 7 },
+        { key: 'fortnight', label: 'Last fortnight', days: 14 },
+        { key: 'month', label: 'Last month', days: 30 },
+        { key: 'quarter', label: 'Last quarter', days: 91 },
+        { key: 'year', label: 'Last year', days: 365 },
+        { key: 'all_time', label: 'All time', days: null }
+      ],
+      week: [
+        { key: 'month', label: 'Last month', days: 30 },
+        { key: 'quarter', label: 'Last quarter', days: 91 },
+        { key: 'year', label: 'Last year', days: 365 },
+        { key: 'all_time', label: 'All time', days: null }
+      ],
+      fortnight: [
+        { key: 'month', label: 'Last month', days: 30 },
+        { key: 'quarter', label: 'Last quarter', days: 91 },
+        { key: 'year', label: 'Last year', days: 365 },
+        { key: 'all_time', label: 'All time', days: null }
+      ],
+      month: [
+        { key: 'quarter', label: 'Last quarter', days: 91 },
+        { key: 'year', label: 'Last year', days: 365 },
+        { key: 'three_years', label: 'Last 3 years', days: 1095 },
+        { key: 'all_time', label: 'All time', days: null }
+      ],
+      quarter: [
+        { key: 'year', label: 'Last year', days: 365 },
+        { key: 'three_years', label: 'Last 3 years', days: 1095 },
+        { key: 'five_years', label: 'Last 5 years', days: 1825 },
+        { key: 'all_time', label: 'All time', days: null }
+      ],
+      year: [
+        { key: 'three_years', label: 'Last 3 years', days: 1095 },
+        { key: 'five_years', label: 'Last 5 years', days: 1825 },
+        { key: 'ten_years', label: 'Last 10 years', days: 3650 },
+        { key: 'twenty_years', label: 'Last 20 years', days: 7300 },
+        { key: 'all_time', label: 'All time', days: null }
+      ]
+    };
+
     const chartState = {
       history: [],
-      selectedRange: 'day'
+      selectedRange: 'day',
+      selectedCompareAgainst: 'previous_day'
     };
 
     function normalizeHistory(data) {
@@ -982,51 +1057,44 @@
       return deltas;
     }
 
-    function sumRange(values, startIndex, length) {
-      let total = 0;
-      for (let i = 0; i < length; i += 1) {
-        const value = Number(values[startIndex + i]);
-        if (Number.isFinite(value)) total += value;
-      }
-      return total;
-    }
-
     function renderComparisonChart() {
       const range = COMPARE_RANGES.find((item) => item.key === chartState.selectedRange) || COMPARE_RANGES[0];
+      const compareOptions = COMPARE_AGAINST_OPTIONS[range.key] || [];
+      const selectedCompare = compareOptions.find((item) => item.key === chartState.selectedCompareAgainst) || compareOptions[0];
       const deltas = getDailyDeltas(chartState.history);
-      const pointCount = range.days * 2;
-      const padded = deltas.length >= pointCount
-        ? deltas.slice(deltas.length - pointCount)
-        : [...Array(pointCount - deltas.length).fill(0), ...deltas];
-
-      const previousTotal = sumRange(padded, 0, range.days);
-      const currentTotal = sumRange(padded, range.days, range.days);
+      const currentSlice = deltas.slice(Math.max(0, deltas.length - range.days));
+      const currentTotal = currentSlice.reduce((sum, value) => sum + (Number(value) || 0), 0);
+      const previousValues = deltas.slice(0, Math.max(0, deltas.length - currentSlice.length));
+      const compareSlice = selectedCompare?.days == null
+        ? previousValues
+        : previousValues.slice(Math.max(0, previousValues.length - selectedCompare.days));
+      const previousTotal = compareSlice.reduce((sum, value) => sum + (Number(value) || 0), 0);
       const diff = currentTotal - previousTotal;
       const diffText = diff >= 0 ? `${formatNumber(diff)} more` : `${formatNumber(Math.abs(diff))} less`;
+      const compareLabel = selectedCompare ? selectedCompare.label.toLowerCase() : 'previous period';
       document.getElementById('compareSummary').textContent =
-        `${range.label}: ${formatNumber(currentTotal)} streams in current period vs ${formatNumber(previousTotal)} previous period (${diffText}).`;
+        `${range.label}: ${formatNumber(currentTotal)} streams in current period vs ${formatNumber(previousTotal)} in ${compareLabel} (${diffText}).`;
 
       const svg = document.getElementById('compareSvg');
       const w = 900;
       const h = 300;
-      const p = 16;
+      const p = 32;
       const gw = w - p * 2;
       const gh = h - p * 2;
-      const maxValue = Math.max(1, ...padded);
-      const toX = (index) => p + (index / (Math.max(1, padded.length - 1))) * gw;
-      const toY = (value) => p + gh - (value / maxValue) * gh;
-      const allPoints = padded.map((value, index) => `${toX(index)},${toY(value)}`).join(' ');
-      const startCurrent = Math.max(0, range.days - 1);
-      const currentPoints = padded
-        .slice(startCurrent)
-        .map((value, index) => `${toX(index + startCurrent)},${toY(value)}`)
-        .join(' ');
-      const dividerX = toX(startCurrent);
+      const maxValue = Math.max(1, previousTotal, currentTotal);
+      const barWidth = Math.min(180, gw / 4);
+      const previousX = p + gw * 0.25 - barWidth / 2;
+      const currentX = p + gw * 0.75 - barWidth / 2;
+      const previousHeight = (previousTotal / maxValue) * (gh - 24);
+      const currentHeight = (currentTotal / maxValue) * (gh - 24);
+      const baseY = p + gh;
 
       svg.innerHTML = `
-        <line x1="${dividerX}" y1="${p}" x2="${dividerX}" y2="${h - p}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="8 6"></line>
-        <polyline points="${allPoints}" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"></polyline>
-        <polyline points="${currentPoints}" fill="none" stroke="#44e07d" stroke-width="3"></polyline>
+        <line x1="${p}" y1="${baseY}" x2="${w - p}" y2="${baseY}" stroke="rgba(255,255,255,0.3)"></line>
+        <rect x="${previousX}" y="${baseY - previousHeight}" width="${barWidth}" height="${previousHeight}" rx="14" fill="rgba(255,255,255,0.4)"></rect>
+        <rect x="${currentX}" y="${baseY - currentHeight}" width="${barWidth}" height="${currentHeight}" rx="14" fill="#44e07d"></rect>
+        <text x="${previousX + barWidth / 2}" y="${baseY + 22}" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="16">${selectedCompare ? selectedCompare.label : 'Previous'}</text>
+        <text x="${currentX + barWidth / 2}" y="${baseY + 22}" text-anchor="middle" fill="rgba(255,255,255,0.92)" font-size="16">Current ${range.label}</text>
       `;
     }
 
@@ -1035,7 +1103,38 @@
       document.querySelectorAll('.compare-range-btn').forEach((button) => {
         button.classList.toggle('active', button.dataset.range === nextRange);
       });
+      const options = COMPARE_AGAINST_OPTIONS[nextRange] || [];
+      if (!options.some((item) => item.key === chartState.selectedCompareAgainst)) {
+        chartState.selectedCompareAgainst = options[0]?.key || '';
+      }
+      renderCompareAgainstControls();
       renderComparisonChart();
+    }
+
+    function setCompareAgainst(nextCompareAgainst) {
+      chartState.selectedCompareAgainst = nextCompareAgainst;
+      document.querySelectorAll('.compare-against-btn').forEach((button) => {
+        button.classList.toggle('active', button.dataset.compareAgainst === nextCompareAgainst);
+      });
+      renderComparisonChart();
+    }
+
+    function renderCompareAgainstControls() {
+      const controls = document.getElementById('compareAgainstControls');
+      controls.innerHTML = '';
+      const options = COMPARE_AGAINST_OPTIONS[chartState.selectedRange] || [];
+      options.forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'compare-range-btn compare-against-btn';
+        button.dataset.compareAgainst = option.key;
+        button.textContent = option.label;
+        button.addEventListener('click', () => setCompareAgainst(option.key));
+        controls.appendChild(button);
+      });
+      document.querySelectorAll('.compare-against-btn').forEach((button) => {
+        button.classList.toggle('active', button.dataset.compareAgainst === chartState.selectedCompareAgainst);
+      });
     }
 
     function setupComparisonUi() {
@@ -1052,7 +1151,7 @@
       });
 
       const modal = document.getElementById('compareModal');
-      document.getElementById('dailyChangeTop').addEventListener('click', () => {
+      document.getElementById('compareRangesTrigger').addEventListener('click', () => {
         modal.classList.add('open');
         setCompareRange(chartState.selectedRange);
       });
@@ -1081,7 +1180,7 @@
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
-      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day <strong>↗ Compare ranges</strong>`;
+      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
@@ -1139,7 +1238,7 @@
         console.error('Failed to load stream data:', error);
         document.getElementById('currentStreamsTop').textContent = 'Unavailable';
         document.getElementById('progressPercentTop').textContent = '--';
-        document.getElementById('dailyChangeTop').innerHTML = '<span class="trend-positive">+0</span> in the last day • <span class="trend-positive">0 more</span> than previous day <strong>↗ Compare ranges</strong>';
+        document.getElementById('dailyChangeTop').innerHTML = '<span class="trend-positive">+0</span> in the last day • <span class="trend-positive">0 more</span> than previous day';
       }
     }
 
