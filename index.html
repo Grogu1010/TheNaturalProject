@@ -267,11 +267,13 @@
 
     .compare-panel {
       width: min(960px, 100%);
+      max-height: min(88vh, 760px);
       border-radius: 24px;
       border: 1px solid rgba(255,255,255,0.14);
       background: linear-gradient(180deg, rgba(16,16,16,0.96), rgba(8,8,8,0.96));
       box-shadow: var(--shadow-strong);
       padding: 22px;
+      overflow: auto;
     }
 
     .compare-header {
@@ -770,6 +772,44 @@
         left: 24px;
         right: 24px;
       }
+
+      .compare-modal {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .compare-panel {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 20px 20px 0 0;
+        padding: 16px;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+      }
+
+      .compare-header {
+        position: sticky;
+        top: 0;
+        background: linear-gradient(180deg, rgba(10,10,10,0.98), rgba(10,10,10,0.84));
+        margin: -16px -16px 10px;
+        padding: 14px 16px 10px;
+        z-index: 2;
+        backdrop-filter: blur(8px);
+      }
+
+      .compare-controls {
+        gap: 10px;
+      }
+
+      .compare-range-btn {
+        flex: 1 1 calc(50% - 10px);
+        min-height: 42px;
+      }
+
+      .compare-svg {
+        height: 240px;
+      }
     }
   </style>
 </head>
@@ -801,7 +841,7 @@
           <div class="top-progress-fill" id="progressFillTop"></div>
         </div>
 
-        <div class="top-tracker-note">The number refreshes daily at 12AM NZST - information is according to <a href="https://www.mystreamcount.com/track/2FY7b99s15jUprqC0M5NCT">mystreamcount.com</a></div>
+        <div class="top-tracker-note">The number refreshes daily at 01:00 UTC. <span id="refreshCountdown">Next refresh in --:--:--</span> • information is according to <a href="https://www.mystreamcount.com/track/2FY7b99s15jUprqC0M5NCT">mystreamcount.com</a></div>
       </div>
     </div>
 
@@ -893,6 +933,7 @@
   <script>
     const GOAL_STREAMS = 3000000000;
     const API_URL = "/.netlify/functions/natural-streams";
+    const REFRESH_HOUR_UTC = 1;
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const glow = document.querySelector('.interactive-glow');
@@ -967,6 +1008,31 @@
 
     function formatNumber(value) {
       return new Intl.NumberFormat('en-US').format(value);
+    }
+
+    function getNextRefreshTime(referenceDate = new Date()) {
+      const next = new Date(referenceDate);
+      next.setUTCHours(REFRESH_HOUR_UTC, 0, 0, 0);
+      if (referenceDate >= next) {
+        next.setUTCDate(next.getUTCDate() + 1);
+      }
+      return next;
+    }
+
+    function formatCountdown(milliseconds) {
+      const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateRefreshCountdown() {
+      const target = getNextRefreshTime();
+      const remaining = target.getTime() - Date.now();
+      const countdown = document.getElementById('refreshCountdown');
+      if (!countdown) return;
+      countdown.textContent = `Next refresh in ${formatCountdown(remaining)}`;
     }
 
     const COMPARE_RANGES = [
@@ -1245,6 +1311,8 @@
     setupComparisonUi();
     updateTracker(0, GOAL_STREAMS, 0);
     loadStreams();
+    updateRefreshCountdown();
+    setInterval(updateRefreshCountdown, 1000);
   </script>
 </body>
 </html>
