@@ -211,6 +211,11 @@
       z-index: 1;
     }
 
+    .refresh-time {
+      color: #44e07d;
+      font-weight: 800;
+    }
+
     .tracker-daily-row {
       display: flex;
       align-items: center;
@@ -841,7 +846,7 @@
           <div class="top-progress-fill" id="progressFillTop"></div>
         </div>
 
-        <div class="top-tracker-note">The number refreshes daily at 01:00 UTC. <span id="refreshCountdown">Next refresh in --:--:--</span> • information is according to <a href="https://www.mystreamcount.com/track/2FY7b99s15jUprqC0M5NCT">mystreamcount.com</a></div>
+        <div class="top-tracker-note">REFRESHES IN: <span class="refresh-time" id="refreshCountdown">--:--:--</span></div>
       </div>
     </div>
 
@@ -856,6 +861,7 @@
         <div class="compare-controls-label">Compare against</div>
         <div class="compare-controls" id="compareAgainstControls"></div>
         <div class="compare-summary" id="compareSummary">Pick a range to compare stream growth.</div>
+        <div class="top-tracker-note">Information is according to <a href="https://www.mystreamcount.com/track/2FY7b99s15jUprqC0M5NCT" target="_blank" rel="noreferrer">mystreamcount.com</a>.</div>
         <div class="compare-chart">
           <svg class="compare-svg" id="compareSvg" viewBox="0 0 900 300" preserveAspectRatio="none"></svg>
         </div>
@@ -933,7 +939,7 @@
   <script>
     const GOAL_STREAMS = 3000000000;
     const API_URL = "/.netlify/functions/natural-streams";
-    const REFRESH_HOUR_UTC = 1;
+    const SWITCH_DATE_UTC = '2026-04-04';
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const glow = document.querySelector('.interactive-glow');
@@ -1010,13 +1016,40 @@
       return new Intl.NumberFormat('en-US').format(value);
     }
 
-    function getNextRefreshTime(referenceDate = new Date()) {
-      const next = new Date(referenceDate);
-      next.setUTCHours(REFRESH_HOUR_UTC, 0, 0, 0);
-      if (referenceDate >= next) {
-        next.setUTCDate(next.getUTCDate() + 1);
+    function getRefreshWindowsForDate(referenceDate) {
+      const yyyyMmDd = referenceDate.toISOString().slice(0, 10);
+      if (yyyyMmDd === SWITCH_DATE_UTC) {
+        return [12];
       }
-      return next;
+      return [1];
+    }
+
+    function getNextRefreshTime(referenceDate = new Date()) {
+      const current = new Date(referenceDate);
+      const startOfDay = new Date(Date.UTC(
+        current.getUTCFullYear(),
+        current.getUTCMonth(),
+        current.getUTCDate(),
+        0, 0, 0, 0
+      ));
+
+      for (let dayOffset = 0; dayOffset < 3; dayOffset += 1) {
+        const candidateDay = new Date(startOfDay);
+        candidateDay.setUTCDate(candidateDay.getUTCDate() + dayOffset);
+        const windows = getRefreshWindowsForDate(candidateDay);
+        for (const hour of windows) {
+          const candidate = new Date(candidateDay);
+          candidate.setUTCHours(hour, 0, 0, 0);
+          if (candidate > current) {
+            return candidate;
+          }
+        }
+      }
+
+      const fallback = new Date(current);
+      fallback.setUTCDate(fallback.getUTCDate() + 1);
+      fallback.setUTCHours(1, 0, 0, 0);
+      return fallback;
     }
 
     function formatCountdown(milliseconds) {
@@ -1032,7 +1065,7 @@
       const remaining = target.getTime() - Date.now();
       const countdown = document.getElementById('refreshCountdown');
       if (!countdown) return;
-      countdown.textContent = `Next refresh in ${formatCountdown(remaining)}`;
+      countdown.textContent = formatCountdown(remaining);
     }
 
     const COMPARE_RANGES = [
@@ -1046,7 +1079,6 @@
 
     const COMPARE_AGAINST_OPTIONS = {
       day: [
-        { key: 'previous_day', label: 'Previous day', days: 1 },
         { key: 'week', label: 'Last week', days: 7 },
         { key: 'fortnight', label: 'Last fortnight', days: 14 },
         { key: 'month', label: 'Last month', days: 30 },
@@ -1090,7 +1122,7 @@
     const chartState = {
       history: [],
       selectedRange: 'day',
-      selectedCompareAgainst: 'previous_day'
+      selectedCompareAgainst: 'week'
     };
 
     function normalizeHistory(data) {
@@ -1260,40 +1292,20 @@
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
 
-    function getDailyIncrease(latestStreams, previousStreams, intervalDays = 1) {
-      const safeIntervalDays = Number.isFinite(Number(intervalDays))
-        ? Math.max(1, Math.round(Number(intervalDays)))
-        : 1;
+    function getDailyIncrease(latestStreams, previousStreams) {
       const increase = Math.max(0, Number(latestStreams) - Number(previousStreams));
-      return Math.round(increase / safeIntervalDays);
+      return Math.round(increase);
     }
 
     function getLastDayIncrease(data) {
       const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
       const last = Number(history[history.length - 1]?.streams);
       const previous = Number(history[history.length - 2]?.streams);
-      const intervalDays = getLatestIntervalDays(data);
-
       if (Number.isFinite(last) && Number.isFinite(previous)) {
-        return getDailyIncrease(last, previous, intervalDays);
+        return getDailyIncrease(last, previous);
       }
 
       return 0;
-    }
-
-    function getLatestIntervalDays(data) {
-      const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
-      const latestDate = new Date(history[history.length - 1]?.capturedAt);
-      const previousDate = new Date(history[history.length - 2]?.capturedAt);
-
-      if (Number.isFinite(latestDate.getTime()) && Number.isFinite(previousDate.getTime())) {
-        const msPerDay = 24 * 60 * 60 * 1000;
-        const elapsed = latestDate - previousDate;
-        const elapsedDays = Math.round(elapsed / msPerDay);
-        return Math.max(1, elapsedDays);
-      }
-
-      return 1;
     }
 
     function getDayOverDayChange(data) {
@@ -1301,20 +1313,10 @@
       const last = Number(history[history.length - 1]?.streams);
       const previous = Number(history[history.length - 2]?.streams);
       const beforePrevious = Number(history[history.length - 3]?.streams);
-      const latestDate = new Date(history[history.length - 1]?.capturedAt);
-      const previousDate = new Date(history[history.length - 2]?.capturedAt);
-      const beforePreviousDate = new Date(history[history.length - 3]?.capturedAt);
 
       if (Number.isFinite(last) && Number.isFinite(previous) && Number.isFinite(beforePrevious)) {
-        const msPerDay = 24 * 60 * 60 * 1000;
-        const latestIntervalDays = Number.isFinite(latestDate.getTime()) && Number.isFinite(previousDate.getTime())
-          ? Math.max(1, Math.round((latestDate - previousDate) / msPerDay))
-          : 1;
-        const priorIntervalDays = Number.isFinite(previousDate.getTime()) && Number.isFinite(beforePreviousDate.getTime())
-          ? Math.max(1, Math.round((previousDate - beforePreviousDate) / msPerDay))
-          : 1;
-        const latestIncrease = getDailyIncrease(last, previous, latestIntervalDays);
-        const priorIncrease = getDailyIncrease(previous, beforePrevious, priorIntervalDays);
+        const latestIncrease = getDailyIncrease(last, previous);
+        const priorIncrease = getDailyIncrease(previous, beforePrevious);
         return latestIncrease - priorIncrease;
       }
 
