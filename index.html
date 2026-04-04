@@ -1135,11 +1135,17 @@
         ? previousValues
         : previousValues.slice(Math.max(0, previousValues.length - selectedCompare.days));
       const previousTotal = compareSlice.reduce((sum, value) => sum + (Number(value) || 0), 0);
-      const diff = currentTotal - previousTotal;
+      const isDayToRangeComparison = range.key === 'day' && (selectedCompare?.days == null || selectedCompare?.days > 1);
+      const compareValue = isDayToRangeComparison
+        ? (compareSlice.length ? previousTotal / compareSlice.length : 0)
+        : previousTotal;
+      const diff = currentTotal - compareValue;
       const diffText = diff >= 0 ? `${formatNumber(diff)} more` : `${formatNumber(Math.abs(diff))} less`;
       const compareLabel = selectedCompare ? selectedCompare.label.toLowerCase() : 'previous period';
-      document.getElementById('compareSummary').textContent =
-        `${range.label}: ${formatNumber(currentTotal)} streams in current period vs ${formatNumber(previousTotal)} in ${compareLabel} (${diffText}).`;
+      const compareSummaryText = isDayToRangeComparison
+        ? `${range.label}: ${formatNumber(currentTotal)} streams in the last day vs ${formatNumber(compareValue)} average streams per day in ${compareLabel} (${diffText}).`
+        : `${range.label}: ${formatNumber(currentTotal)} streams in current period vs ${formatNumber(compareValue)} in ${compareLabel} (${diffText}).`;
+      document.getElementById('compareSummary').textContent = compareSummaryText;
 
       const svg = document.getElementById('compareSvg');
       const w = 900;
@@ -1147,19 +1153,22 @@
       const p = 32;
       const gw = w - p * 2;
       const gh = h - p * 2;
-      const maxValue = Math.max(1, previousTotal, currentTotal);
+      const maxValue = Math.max(1, compareValue, currentTotal);
       const barWidth = Math.min(180, gw / 4);
       const previousX = p + gw * 0.25 - barWidth / 2;
       const currentX = p + gw * 0.75 - barWidth / 2;
-      const previousHeight = (previousTotal / maxValue) * (gh - 24);
+      const previousHeight = (compareValue / maxValue) * (gh - 24);
       const currentHeight = (currentTotal / maxValue) * (gh - 24);
       const baseY = p + gh;
+      const previousBarLabel = isDayToRangeComparison
+        ? `Avg day (${selectedCompare ? selectedCompare.label : 'Previous'})`
+        : `${selectedCompare ? selectedCompare.label : 'Previous'}`;
 
       svg.innerHTML = `
         <line x1="${p}" y1="${baseY}" x2="${w - p}" y2="${baseY}" stroke="rgba(255,255,255,0.3)"></line>
         <rect x="${previousX}" y="${baseY - previousHeight}" width="${barWidth}" height="${previousHeight}" rx="14" fill="rgba(255,255,255,0.4)"></rect>
         <rect x="${currentX}" y="${baseY - currentHeight}" width="${barWidth}" height="${currentHeight}" rx="14" fill="#44e07d"></rect>
-        <text x="${previousX + barWidth / 2}" y="${baseY + 22}" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="16">${selectedCompare ? selectedCompare.label : 'Previous'}</text>
+        <text x="${previousX + barWidth / 2}" y="${baseY + 22}" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="16">${previousBarLabel}</text>
         <text x="${currentX + barWidth / 2}" y="${baseY + 22}" text-anchor="middle" fill="rgba(255,255,255,0.92)" font-size="16">Current ${range.label}</text>
       `;
     }
