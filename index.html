@@ -1227,7 +1227,7 @@
       });
     }
 
-    function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0) {
+    function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0, intervalDays = 1) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
       const safeIncrease = Number.isFinite(Number(lastDayIncrease))
@@ -1236,6 +1236,11 @@
       const safeDayOverDayChange = Number.isFinite(Number(dayOverDayChange))
         ? Number(dayOverDayChange)
         : 0;
+      const safeIntervalDays = Number.isFinite(Number(intervalDays))
+        ? Math.max(1, Math.round(Number(intervalDays)))
+        : 1;
+      const intervalLabel = safeIntervalDays === 1 ? 'day' : `${safeIntervalDays} days`;
+      const previousIntervalLabel = safeIntervalDays === 1 ? 'day' : `${safeIntervalDays} days`;
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
       const percentRounded = Math.floor(percentRaw);
@@ -1246,7 +1251,7 @@
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
-      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day`;
+      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last ${intervalLabel} • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous ${previousIntervalLabel}`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
     }
@@ -1261,6 +1266,21 @@
       }
 
       return 0;
+    }
+
+    function getLatestIntervalDays(data) {
+      const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
+      const latestDate = new Date(history[history.length - 1]?.capturedAt);
+      const previousDate = new Date(history[history.length - 2]?.capturedAt);
+
+      if (Number.isFinite(latestDate.getTime()) && Number.isFinite(previousDate.getTime())) {
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const elapsed = latestDate - previousDate;
+        const elapsedDays = Math.round(elapsed / msPerDay);
+        return Math.max(1, elapsedDays);
+      }
+
+      return 1;
     }
 
     function getDayOverDayChange(data) {
@@ -1296,7 +1316,8 @@
           data.currentStreams,
           data.goalStreams || GOAL_STREAMS,
           getLastDayIncrease(data),
-          getDayOverDayChange(data)
+          getDayOverDayChange(data),
+          getLatestIntervalDays(data)
         );
         chartState.history = normalizeHistory(data);
         renderComparisonChart();
