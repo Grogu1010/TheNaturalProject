@@ -1236,7 +1236,7 @@
       });
     }
 
-    function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0, intervalDays = 1) {
+    function updateTracker(current, goal, lastDayIncrease = 0, dayOverDayChange = 0) {
       const safeCurrent = Math.max(0, Number(current) || 0);
       const safeGoal = Math.max(1, Number(goal) || 1);
       const safeIncrease = Number.isFinite(Number(lastDayIncrease))
@@ -1245,11 +1245,6 @@
       const safeDayOverDayChange = Number.isFinite(Number(dayOverDayChange))
         ? Number(dayOverDayChange)
         : 0;
-      const safeIntervalDays = Number.isFinite(Number(intervalDays))
-        ? Math.max(1, Math.round(Number(intervalDays)))
-        : 1;
-      const intervalLabel = safeIntervalDays === 1 ? 'day' : `${safeIntervalDays} days`;
-      const previousIntervalLabel = safeIntervalDays === 1 ? 'day' : `${safeIntervalDays} days`;
 
       const percentRaw = (safeCurrent / safeGoal) * 100;
       const percentRounded = Math.floor(percentRaw);
@@ -1260,18 +1255,27 @@
 
       document.getElementById('currentStreamsTop').textContent = formatNumber(safeCurrent);
       document.getElementById('progressPercentTop').textContent = `${percentRounded}%`;
-      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last ${intervalLabel} • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous ${previousIntervalLabel}`;
+      document.getElementById('dailyChangeTop').innerHTML = `<span class="trend-positive">+${formatNumber(safeIncrease)}</span> in the last day • <span class="${trendClass}">${trendAmount} ${trendDirection}</span> than previous day`;
       document.getElementById('progressFillTop').style.width = `${percentClamped}%`;
       document.querySelector('.top-progress-shell').setAttribute('aria-valuenow', String(percentRounded));
+    }
+
+    function getDailyIncrease(latestStreams, previousStreams, intervalDays = 1) {
+      const safeIntervalDays = Number.isFinite(Number(intervalDays))
+        ? Math.max(1, Math.round(Number(intervalDays)))
+        : 1;
+      const increase = Math.max(0, Number(latestStreams) - Number(previousStreams));
+      return Math.round(increase / safeIntervalDays);
     }
 
     function getLastDayIncrease(data) {
       const history = Array.isArray(data?.streamHistory) ? data.streamHistory : [];
       const last = Number(history[history.length - 1]?.streams);
       const previous = Number(history[history.length - 2]?.streams);
+      const intervalDays = getLatestIntervalDays(data);
 
       if (Number.isFinite(last) && Number.isFinite(previous)) {
-        return Math.max(0, last - previous);
+        return getDailyIncrease(last, previous, intervalDays);
       }
 
       return 0;
@@ -1297,10 +1301,20 @@
       const last = Number(history[history.length - 1]?.streams);
       const previous = Number(history[history.length - 2]?.streams);
       const beforePrevious = Number(history[history.length - 3]?.streams);
+      const latestDate = new Date(history[history.length - 1]?.capturedAt);
+      const previousDate = new Date(history[history.length - 2]?.capturedAt);
+      const beforePreviousDate = new Date(history[history.length - 3]?.capturedAt);
 
       if (Number.isFinite(last) && Number.isFinite(previous) && Number.isFinite(beforePrevious)) {
-        const latestIncrease = Math.max(0, last - previous);
-        const priorIncrease = Math.max(0, previous - beforePrevious);
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const latestIntervalDays = Number.isFinite(latestDate.getTime()) && Number.isFinite(previousDate.getTime())
+          ? Math.max(1, Math.round((latestDate - previousDate) / msPerDay))
+          : 1;
+        const priorIntervalDays = Number.isFinite(previousDate.getTime()) && Number.isFinite(beforePreviousDate.getTime())
+          ? Math.max(1, Math.round((previousDate - beforePreviousDate) / msPerDay))
+          : 1;
+        const latestIncrease = getDailyIncrease(last, previous, latestIntervalDays);
+        const priorIncrease = getDailyIncrease(previous, beforePrevious, priorIntervalDays);
         return latestIncrease - priorIncrease;
       }
 
@@ -1325,8 +1339,7 @@
           data.currentStreams,
           data.goalStreams || GOAL_STREAMS,
           getLastDayIncrease(data),
-          getDayOverDayChange(data),
-          getLatestIntervalDays(data)
+          getDayOverDayChange(data)
         );
         chartState.history = normalizeHistory(data);
         renderComparisonChart();
