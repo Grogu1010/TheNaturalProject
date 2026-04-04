@@ -1,10 +1,11 @@
 import { getStore } from "@netlify/blobs";
 
-const URL = "https://www.mystreamcount.com/track/1YBER5wirv0YFvED0LFTMK";
+const URL = "https://www.mystreamcount.com/track/2FY7b99s15jUprqC0M5NCT";
 const GOAL = 3000000000;
+const NZST_SPECIAL_DAY_UTC = "2026-04-04";
 
 export const config = {
-  schedule: "0 12 * * *" // midnight NZST
+  schedule: "0 1,12 * * *"
 };
 
 function extract(html){
@@ -16,6 +17,16 @@ function extract(html){
 
 export default async () => {
   try{
+    const nowDate = new Date();
+    const nowHourUtc = nowDate.getUTCHours();
+    const nowDayUtc = nowDate.toISOString().slice(0, 10);
+    const isSpecialNzstRun = nowDayUtc === NZST_SPECIAL_DAY_UTC && nowHourUtc === 12;
+    const isStandardRun = nowHourUtc === 1;
+
+    if (!isSpecialNzstRun && !isStandardRun) {
+      return new Response("Skipped: not a configured refresh window");
+    }
+
     const store = getStore("natural");
     const existingRaw = await store.get("data");
     let existingData = null;
@@ -35,7 +46,7 @@ export default async () => {
 
     if(!streams) throw new Error("No streams found");
 
-    const now = new Date().toISOString();
+    const now = nowDate.toISOString();
     const previousCount = Number(existingData?.currentStreams);
     const snapshots = Array.isArray(existingData?.streamHistory)
       ? existingData.streamHistory
@@ -79,7 +90,7 @@ export default async () => {
       goalStreams: GOAL,
       updatedAt: now,
       streamHistory: normalizedHistory,
-      note: "Updated daily at midnight NZST"
+      note: "Updated daily (special run at midnight NZST on 2026-04-04 UTC day, then 01:00 UTC)"
     }));
 
     return new Response("ok");
